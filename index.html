@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ADO OAuth Callback</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2330; --mute:#6b7280; --line:#e5e7eb; --ok:#0f766e; --err:#b91c1c; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui,"Segoe UI","Noto Sans Thai",sans-serif; }
+  main { max-width:560px; margin:48px auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p { margin:8px 0; color:var(--mute); }
+  code { display:block; word-break:break-all; background:#f1f3f5; border:1px solid var(--line); border-radius:8px; padding:12px; margin:12px 0; font-size:13px; color:var(--ink); }
+  button { border:0; border-radius:8px; padding:10px 16px; background:var(--ok); color:#fff; font-weight:600; cursor:pointer; }
+  .err { color:var(--err); }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>ADO — OAuth Callback</h1>
+    <p>หน้านี้แค่แสดง <b>auth_code</b> ที่ TikTok ส่งกลับมา ไม่ได้ส่งข้อมูลไปที่ไหน</p>
+
+    <div id="ok" class="hidden">
+      <p>นำ code ไปใส่ใน Bruno (<i>tiktok_auth_code</i>) แล้วรัน <i>00 oauth2/access_token</i> ภายใน 10 นาที — code ใช้ได้ครั้งเดียว</p>
+      <code id="code"></code>
+      <button id="copy" type="button">Copy code</button>
+      <p id="meta"></p>
+    </div>
+
+    <div id="none" class="hidden">
+      <p class="err" id="errmsg">ไม่พบ auth_code ใน URL</p>
+    </div>
+  </div>
+</main>
+<script>
+  // อ่านค่าจาก query string เท่านั้น — ไม่มี network call ไม่เก็บลง storage
+  const q = new URLSearchParams(location.search);
+  const code = q.get('auth_code') || q.get('code');
+  const err = q.get('error') || q.get('error_description');
+  if (code) {
+    document.getElementById('code').textContent = code;
+    const extra = [['state', q.get('state')], ['scopes', q.get('scopes')]].filter(([, v]) => v);
+    document.getElementById('meta').textContent = extra.map(([k, v]) => `${k}: ${v}`).join(' · ');
+    document.getElementById('ok').classList.remove('hidden');
+    document.getElementById('copy').onclick = async e => {
+      try { await navigator.clipboard.writeText(code); e.target.textContent = 'Copied'; }
+      catch { e.target.textContent = 'Copy ไม่ได้ — เลือกข้อความเอง'; }
+    };
+    // ลบ code ออกจาก address bar กันติดไปกับ history / screenshot
+    history.replaceState(null, '', location.pathname);
+  } else {
+    if (err) document.getElementById('errmsg').textContent = `TikTok ตอบกลับ error: ${err}`;
+    document.getElementById('none').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
